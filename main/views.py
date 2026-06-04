@@ -144,4 +144,25 @@ def announcement_data(request, id):
     else:
         return JsonResponse({'error': 'Метод запрещен!'}, status=405)
 
+@csrf_exempt 
+def add_image(request, id):
+    if request.method == 'POST':
+        if not request.user.is_authenticated:
+                return JsonResponse({'error': 'Пользователь не авторизован'}, status=401)
+        
+        image_file = request.FILES.get('image')
+        if not image_file:
+                return JsonResponse({'error': 'Изображение не передано'}, status=400)
+        user = User.objects.get(pk=request.user.pk)
+        announcement = get_object_or_404(Announcement, pk=id)
+        announcement_image = Image.objects.create(announcement=announcement, author=user,
+                                                image=image_file)
+        return JsonResponse({
+            'id': announcement_image.pk,
+            'announcement_title':  announcement_image.announcement.title,
+            'announcement': announcement_image.announcement.pk,
+            'image': announcement_image.image.url,
+        })
+
+    
 
