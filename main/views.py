@@ -53,7 +53,7 @@ def announcement_list(request):
         announcement.author_id = request.user.pk 
         announcement.save()
         
-        serialized = {
+        return JsonResponse({
             'id': announcement.id,
             'status': announcement.status_id, 
             'title': announcement.title,
@@ -62,8 +62,7 @@ def announcement_list(request):
             'created_at': announcement.created_at.isoformat(),
             'update_at': announcement.update_at.isoformat(),
             'images_urls': [],
-        }
-        return JsonResponse(serialized, status=201)
+        }, status=201)
     else:
         return JsonResponse({'error': 'Метод запрещен'}, status=405)
 
@@ -77,8 +76,7 @@ def announcement_data(request, id):
             image_url = request.build_absolute_uri(image.image.url)
             image_urls.append(image_url)
 
-        data = []
-        data.append({
+        return JsonResponse({
             'id': announcement.id,
             'author': f'Эл.Почта: {announcement.author.email} Телефон: {announcement.author.phone}',
             'title': announcement.title,
@@ -87,8 +85,7 @@ def announcement_data(request, id):
             'created_at': announcement.created_at,
             'update_at': announcement.update_at,
             'images_urls': image_urls,
-        })
-        return JsonResponse(data, safe=False, status=200)
+        }, safe=False, status=200)
     
     elif request.method == 'PUT':
         try:
@@ -129,8 +126,8 @@ def announcement_data(request, id):
             announcement.status = status_obj
 
         announcement.save()
-        
-        serialized = {
+
+        return JsonResponse({
             'id': announcement.id,
             'status': announcement.status_id, 
             'title': announcement.title,
@@ -138,9 +135,7 @@ def announcement_data(request, id):
             'author': announcement.author.email,
             'created_at': announcement.created_at.isoformat(),
             'update_at': announcement.update_at.isoformat(),
-        }
-
-        return JsonResponse(serialized, status=201)
+        }, status=201)
     else:
         return JsonResponse({'error': 'Метод запрещен!'}, status=405)
 
@@ -157,12 +152,30 @@ def add_image(request, id):
         announcement = get_object_or_404(Announcement, pk=id)
         announcement_image = Image.objects.create(announcement=announcement, author=user,
                                                 image=image_file)
+        announcement_image.save()
+        
         return JsonResponse({
             'id': announcement_image.pk,
             'announcement_title':  announcement_image.announcement.title,
             'announcement': announcement_image.announcement.pk,
             'image': announcement_image.image.url,
-        })
+        }, status=200)
 
+@csrf_exempt 
+def delete_image(request, id, image_id):
+    if request.method == 'DELETE':
+        if not request.user.is_authenticated:
+                return JsonResponse({'error': 'Пользователь не авторизован'}, status=401)
+        announcement = get_object_or_404(Announcement, pk=id)
+        image = get_object_or_404(Image, pk=image_id, announcement=announcement)
+        
+        image.image.delete(save=False)
+        image.delete()
+
+        return JsonResponse({
+            'Изображение удалено':'',
+            'id': announcement.pk,
+            'announcement_title': announcement.title,
+            'announcement_id': announcement.pk,
+        }, status=200)
     
-
