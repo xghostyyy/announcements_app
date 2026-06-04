@@ -31,6 +31,14 @@ def announcement_list(request):
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Неверный JSON'}, status=400)
         
+        if isinstance(body, list):
+            if len(body) > 0:
+                body = body[0]
+            else:
+                return JsonResponse({'error': 'Пустой массив'}, status=400)
+        elif not isinstance(body, dict):
+            return JsonResponse({'error': 'Некорректный формат данных'}, status=400)
+
         title = body.get('title', '').strip()
         text = body.get('text', '').strip()
         status_id = body.get('status')
