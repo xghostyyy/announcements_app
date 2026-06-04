@@ -5,7 +5,7 @@
 
 Перед выполнением надо авторизоваться в браузере по адрессу: http://127.0.0.1:8000/admin
 После чего: F12 -> Application -> Cookies -> sessionid (необходимо скопировать)
-![](static\media\image-1.png)
+![](static/media/image-1.png)
 
 После чего вставить в Postman: Tools (внизу) -> Cookies -> Add Cookies -> Вставить куки 
 ![](static\media\image-2.png) 
