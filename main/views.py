@@ -31,7 +31,7 @@ def announcement_list(request):
             open_status = Status.objects.get(pk=1)
         except Status.DoesNotExist:
             return JsonResponse({'error': 'Статус "Открыто" не найден'}, status=500)
-        announcement = Announcement.objects.filter(status=open_status).order_by('-created_at')
+        announcement = Announcement.objects.filter(status=open_status).prefetch_related('images').order_by('-created_at')
 
         data = []
         for ann in announcement:
