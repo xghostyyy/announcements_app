@@ -31,7 +31,16 @@ def announcement_list(request):
             open_status = Status.objects.get(pk=1)
         except Status.DoesNotExist:
             return JsonResponse({'error': 'Статус "Открыто" не найден'}, status=500)
-        announcement = Announcement.objects.filter(status=open_status).prefetch_related('images').order_by('-created_at')
+        
+        author_id = request.GET.get('author_id')
+        order_by = request.GET.get('order_by')
+
+        if author_id:
+            announcement = Announcement.objects.filter(status=open_status, author_id=author_id).prefetch_related('images').order_by('-created_at')
+        if order_by:
+            announcement = Announcement.objects.filter(status=open_status).prefetch_related('images').order_by(order_by)
+        if not author_id and not order_by:
+            announcement = Announcement.objects.filter(status=open_status).prefetch_related('images').order_by('-created_at')
 
         data = []
         for ann in announcement:
@@ -45,6 +54,7 @@ def announcement_list(request):
                 'title': ann.title,
                 'created_at': ann.created_at.isoformat(),
                 'images_urls': image_urls,
+                'author_id': ann.author_id,
         })
         return JsonResponse(data, safe=False, status=200)
         
