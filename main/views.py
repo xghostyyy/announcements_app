@@ -1,5 +1,5 @@
 from .models import Announcement, User, Image, Status
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
@@ -7,6 +7,9 @@ import json
 @csrf_exempt
 def announcement_list(request):
     if request.method == 'GET':
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Пользователь не авторизован'}, status=401)
+
         try:
             open_status = Status.objects.get(pk=1)
         except Status.DoesNotExist:
@@ -77,6 +80,9 @@ def announcement_list(request):
 @csrf_exempt 
 def announcement_data(request, id):
     if request.method == 'GET':
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Пользователь не авторизован'}, status=401)
+
         announcement = get_object_or_404(Announcement, pk=id)
 
         image_urls = []
@@ -187,3 +193,10 @@ def delete_image(request, id, image_id):
             'announcement_id': announcement.pk,
         }, status=200)
     
+def index(request):
+    if request.user.is_authenticated:
+        message = "Авторизация успешна!"
+    else:
+        message = "Ошибка авторизации"
+          
+    return render(request, 'main/index.html', {'message': message})
