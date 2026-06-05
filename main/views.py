@@ -2,8 +2,25 @@ from .models import Announcement, User, Image, Status
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from django.contrib import messages
+from functools import wraps
 import json
 
+def auth_message(func):
+    @wraps(func)
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_authenticated:
+            messages.success(request, "Авторизация успешна!")
+        else:
+            messages.error(request, "Ошибка авторизации")
+        return func(request, *args, **kwargs)
+    return wrapper
+
+@auth_message
+def index(request):   
+    return render(request, 'main/index.html')
+
+@auth_message
 @csrf_exempt
 def announcement_list(request):
     if request.method == 'GET':
@@ -15,13 +32,19 @@ def announcement_list(request):
         except Status.DoesNotExist:
             return JsonResponse({'error': 'Статус "Открыто" не найден'}, status=500)
         announcement = Announcement.objects.filter(status=open_status).order_by('-created_at')
-        
+
         data = []
         for ann in announcement:
+            image_urls = []
+            for image in ann.images.all():
+                image_url = request.build_absolute_uri(image.image.url)
+                image_urls.append(image_url)
+            
             data.append({
                 'id': ann.id,
                 'title': ann.title,
                 'created_at': ann.created_at.isoformat(),
+                'images_urls': image_urls,
         })
         return JsonResponse(data, safe=False, status=200)
         
@@ -77,6 +100,7 @@ def announcement_list(request):
     else:
         return JsonResponse({'error': 'Метод запрещен'}, status=405)
 
+@auth_message
 @csrf_exempt 
 def announcement_data(request, id):
     if request.method == 'GET':
@@ -121,9 +145,9 @@ def announcement_data(request, id):
 
         announcement = get_object_or_404(Announcement, pk=id)
 
-        # Убрал, так как сейчас нет возможности авторизоваться под кастомным юзером
-        #if request.user != announcement.author or not request.user.is_admin:
-        #    return JsonResponse({'error': 'Нет прав для редактирования'}, status=403)
+    
+        if request.user != announcement.author or not request.user.is_admin:
+            return JsonResponse({'error': 'Нет прав для редактирования'}, status=403)
 
         try:
             status_obj = Status.objects.get(pk=status_id)
@@ -153,6 +177,7 @@ def announcement_data(request, id):
     else:
         return JsonResponse({'error': 'Метод запрещен!'}, status=405)
 
+@auth_message
 @csrf_exempt 
 def add_image(request, id):
     if request.method == 'POST':
@@ -175,6 +200,7 @@ def add_image(request, id):
             'image': announcement_image.image.url,
         }, status=200)
 
+@auth_message
 @csrf_exempt 
 def delete_image(request, id, image_id):
     if request.method == 'DELETE':
@@ -193,10 +219,3 @@ def delete_image(request, id, image_id):
             'announcement_id': announcement.pk,
         }, status=200)
     
-def index(request):
-    if request.user.is_authenticated:
-        message = "Авторизация успешна!"
-    else:
-        message = "Ошибка авторизации"
-          
-    return render(request, 'main/index.html', {'message': message})
