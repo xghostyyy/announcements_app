@@ -76,3 +76,22 @@ class ImageSerializer(serializers.ModelSerializer):
         if request and obj.image:
             return request.build_absolute_uri(obj.image.url)
         return None
+    
+class ImageCreateSerializer(serializers.ModelSerializer):
+    announcement_id = serializers.PrimaryKeyRelatedField(
+        queryset=Announcement.objects.all(),
+        write_only=True,
+        source='announcement'
+    )
+    
+    class Meta:
+        model = Image
+        fields = ('announcement_id', 'image')
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        return Image.objects.create(
+            announcement=validated_data['announcement'],
+            image=validated_data['image'],
+            author=request.user
+        )

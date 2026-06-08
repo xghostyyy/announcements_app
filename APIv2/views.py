@@ -191,3 +191,17 @@ class AnnouncementData(APIView):
             },
             status=status.HTTP_200_OK
         )
+    
+class AddImage(APIView):
+    authentication_classes = [SafeSessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(request, id):
+        pass
+
+class DeleteImage(APIView):
+    authentication_classes = [SafeSessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def delete(request, id, image_id):
+        pass
