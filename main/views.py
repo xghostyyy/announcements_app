@@ -35,6 +35,16 @@ def announcement_list(request):
         author_id = request.GET.get('author_id')
         order_by = request.GET.get('order_by')
 
+        allowed_sort = ('created_at', 'update_at', 'title', 'id')
+
+        if order_by:
+            sort = order_by.lstrip('-')
+            if sort not in allowed_sort:
+                return JsonResponse(
+                    {'error': f'Недопустимое поле для сортировки (Допустимы: {', '.join(allowed_sort)})'},
+                    status=400
+                )
+
         if author_id:
             announcement = Announcement.objects.filter(status=open_status, author_id=author_id).prefetch_related('images').order_by('-created_at')
         if order_by:
