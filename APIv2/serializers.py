@@ -51,16 +51,13 @@ class AnnouncementCreateSerializer(serializers.ModelSerializer):
         return data
     
     def create(self, validated_data):
-        # Извлекаем объект Status из validated_data
-        status_obj = validated_data.pop('status_id')  # достаём объект
-        
+        status_obj = validated_data.pop('status_id')  
         request = self.context.get('request')
         
-        # Создаём объявление, передавая объект Status в поле 'status'
         announcement = Announcement.objects.create(
             title=validated_data['title'],
             text=validated_data['text'],
-            status=status_obj,  # передаём объект Status
+            status=status_obj,
             author_id=request.user.pk
         )
         

@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication
 from django.shortcuts import get_object_or_404
 from main.models import Announcement, Status
 from .serializers import AnnouncementSerializer, AnnouncementCreateSerializer
@@ -100,4 +101,93 @@ class AnnouncementList(APIView):
                 'images_urls': [],
             },
             status=status.HTTP_201_CREATED
+        )
+
+class SafeSessionAuthentication(SessionAuthentication):
+    def enforce_csrf(self, request):
+        return 
+
+class AnnouncementData(APIView):
+    authentication_classes = [SafeSessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        announcement = get_object_or_404(Announcement, pk=id)
+
+        images_urls = []
+        for image in announcement.images.all():
+            image_url = request.build_absolute_uri(image.image.url)
+            images_urls.append(image_url)
+
+        serializer = AnnouncementSerializer(announcement)
+
+        item_data = serializer.data
+        item_data['images_urls'] = images_urls
+        item_data['author_id'] = announcement.author_id
+
+        return Response(item_data, status=status.HTTP_200_OK)
+
+    def put(self, request, id):
+        announcement = get_object_or_404(Announcement, pk=id)
+
+        if request.user != announcement.author and not request.user.is_superuser:
+            return Response(
+                {'error': 'У вас нет прав для редактирования'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        body = request.data
+
+        if isinstance(body, list):
+            if len(body) > 0:
+                body = body[0]
+            else:
+                return Response(
+                    {'error': 'Пустой массив'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        elif not isinstance(body, dict):
+            return Response(
+                {'error': 'Некорректный формат данных'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = AnnouncementCreateSerializer(
+            announcement,
+            data=body,
+            context={'request': request},
+            partial=True
+        )
+
+        if not serializer.is_valid():
+            errors = serializer.errors
+            if 'title' in errors:
+                error_msg = errors['title'][0]
+            elif 'text' in errors:
+                error_msg = errors['text'][0]
+            elif 'status_id' in errors:
+                error_msg = errors['status_id'][0]
+            elif 'non_field_errors' in errors:
+                error_msg = errors['non_field_errors'][0]
+            else:
+                error_msg = 'Ошибка валидации'
+
+            return Response(
+                {'error': error_msg},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        announcement = serializer.save()
+
+        return Response(
+            {
+                'id': announcement.id,
+                'status': announcement.status_id,
+                'title': announcement.title,
+                'text': announcement.text,
+                'author': announcement.author.email,
+                'created_at': announcement.created_at.isoformat(),
+                'update_at': announcement.update_at.isoformat(),
+            },
+            status=status.HTTP_200_OK
         )
