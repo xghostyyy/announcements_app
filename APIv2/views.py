@@ -4,8 +4,8 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from django.shortcuts import get_object_or_404
-from main.models import Announcement, Status
-from .serializers import AnnouncementSerializer, AnnouncementCreateSerializer
+from main.models import Announcement, Status, Image
+from .serializers import AnnouncementSerializer, AnnouncementCreateSerializer, ImageCreateSerializer
 
 class AnnouncementList(APIView):
     permission_classes = [IsAuthenticated]
@@ -196,12 +196,62 @@ class AddImage(APIView):
     authentication_classes = [SafeSessionAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def post(request, id):
-        pass
+    def post(self, request, id):
+        announcement = get_object_or_404(Announcement, pk=id)
+
+        if request.user != announcement.author and not request.user.is_superuser:
+            return Response(
+                {'error': 'У вас нет прав для редактирования'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response(
+                {'error': 'Изображение не прикреплено'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        data = {'image': image_file, 'announcement_id': announcement.pk}
+        
+        serializer = ImageCreateSerializer(data=data, 
+                                           context={'request': request})
+        
+        if not serializer.is_valid():
+            error = serializer.errors
+            return Response({'error': error}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+        image = serializer.save()
+
+        return Response({
+            'id': image.pk,
+            'announcement_id': announcement.pk,
+            'announcement_id': announcement.pk,
+            'image': image.image.url,
+        }, status=status.HTTP_201_CREATED)
+
+        
 
 class DeleteImage(APIView):
     authentication_classes = [SafeSessionAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def delete(request, id, image_id):
-        pass
+    def delete(self, request, id, image_id):
+
+        announcement = get_object_or_404(Announcement, pk=id)
+        select_image = get_object_or_404(Image, pk=image_id)
+
+        if request.user != announcement.author and not request.user.is_superuser:
+            return Response(
+                {'error': 'У вас нет прав для редактирования'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        select_image.image.delete(save=False)
+        select_image.delete()
+
+        return Response({
+            'Изображение удалено': '',
+            'announcement_id': announcement.pk,
+            'announcement_title': announcement.title
+        }, status=status.HTTP_200_OK)

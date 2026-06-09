@@ -90,8 +90,9 @@ class ImageCreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         request = self.context.get('request')
+        user = User.objects.get(pk=request.user.pk)
         return Image.objects.create(
             announcement=validated_data['announcement'],
             image=validated_data['image'],
-            author=request.user
+            author=user
         )

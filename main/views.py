@@ -236,6 +236,5 @@ def delete_image(request, id, image_id):
             'Изображение удалено':'',
             'id': announcement.pk,
             'announcement_title': announcement.title,
-            'announcement_id': announcement.pk,
         }, status=200)
     
