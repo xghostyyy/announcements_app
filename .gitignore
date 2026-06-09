@@ -1,16 +1,14 @@
-# Python
 __pycache__/
 *.pyc
 venv/
 env/
 .env
+media/
 
-# Django
 db.sqlite3
 staticfiles/
 local_settings.py
 
-# IDE
 .vscode/
 .idea/
 .DS_Store
