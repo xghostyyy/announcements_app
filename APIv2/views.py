@@ -2,12 +2,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication
+from rest_framework.authentication import TokenAuthentication
 from django.shortcuts import get_object_or_404
 from main.models import Announcement, Status, Image
 from .serializers import AnnouncementSerializer, AnnouncementCreateSerializer, ImageCreateSerializer
 
 class AnnouncementList(APIView):
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -103,12 +104,8 @@ class AnnouncementList(APIView):
             status=status.HTTP_201_CREATED
         )
 
-class SafeSessionAuthentication(SessionAuthentication):
-    def enforce_csrf(self, request):
-        return 
-
 class AnnouncementData(APIView):
-    authentication_classes = [SafeSessionAuthentication]
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request, id):
@@ -193,7 +190,7 @@ class AnnouncementData(APIView):
         )
     
 class AddImage(APIView):
-    authentication_classes = [SafeSessionAuthentication]
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request, id):
@@ -226,14 +223,14 @@ class AddImage(APIView):
         return Response({
             'id': image.pk,
             'announcement_id': announcement.pk,
-            'announcement_id': announcement.pk,
+            'announcement_title': announcement.title,
             'image': image.image.url,
         }, status=status.HTTP_201_CREATED)
 
         
 
 class DeleteImage(APIView):
-    authentication_classes = [SafeSessionAuthentication]
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, id, image_id):

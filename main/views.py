@@ -1,4 +1,5 @@
 from .models import Announcement, User, Image, Status
+from rest_framework.authtoken.models import Token
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -11,14 +12,23 @@ def auth_message(func):
     def wrapper(request, *args, **kwargs):
         if request.user.is_authenticated:
             messages.success(request, "Авторизация успешна!")
+            
+            token, created = Token.objects.get_or_create(user=request.user)
+            
+            request.user_token = token.key
         else:
             messages.error(request, "Ошибка авторизации")
+            request.user_token = None
+            
         return func(request, *args, **kwargs)
     return wrapper
 
 @auth_message
-def index(request):   
-    return render(request, 'main/index.html')
+def index(request):  
+    context = {
+        'user_token': getattr(request, 'user_token', None)
+    } 
+    return render(request, 'main/index.html', context )
 
 @auth_message
 @csrf_exempt
